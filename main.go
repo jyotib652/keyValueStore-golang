@@ -30,6 +30,7 @@ func main() {
 
 }
 
+// FetchUserInput receives user input from standard input and then send back those inputs to HandleUserCommand for processing.
 func FetchUserInput(wg *sync.WaitGroup, commandChan chan string, commandVariableAndValueChan chan []string, endProcessChan chan bool) {
 	defer wg.Done()
 
@@ -52,7 +53,6 @@ func FetchUserInput(wg *sync.WaitGroup, commandChan chan string, commandVariable
 			fmt.Print()
 		}
 
-		// Prompt()
 		reader = bufio.NewReader(os.Stdin)
 		userInput, err := reader.ReadString('\n')
 		if err != nil {
@@ -62,16 +62,10 @@ func FetchUserInput(wg *sync.WaitGroup, commandChan chan string, commandVariable
 		// fmt.Println("user input is:", userInput)
 
 		userInputSlice := strings.Split(userInput, " ")
-		// if len(userInputSlice) > 3 {
-		// 	HelpingInfoForUserInputOne()
-		// 	continue
-		// } else if len(userInputSlice) <= 1 {
-		// 	HelpingInfoForUserInputTwo()
-		// 	continue
-		// }
 
 		userInputCommand := strings.ToLower(userInputSlice[0])
-		userInputCommand = strings.TrimSuffix(userInputCommand, "\r\n")
+		userInputCommand = strings.TrimSuffix(userInputCommand, "\r\n") // for windows carriage return
+		userInputCommand = strings.TrimSuffix(userInputCommand, "\n")   // for linux newline return
 		useInputSliceLength := len(userInputSlice)
 		userInputVariableName := ""
 		userInputvariableVal := ""
@@ -90,36 +84,23 @@ func FetchUserInput(wg *sync.WaitGroup, commandChan chan string, commandVariable
 		commandVariableAndValue := []string{userInputVariableName, userInputvariableVal}
 		commandChan <- userInputCommand
 		commandVariableAndValueChan <- commandVariableAndValue
-		// for "get" command, the user input is of length 2
-		// one is for "get" command another is for variable name
-		// so we would wait here for the result of this "get" command and
-		// we would do that by reading value from "getCommandResult" channel
 
 		// fmt.Println("user input slice is:", userInputSlice)
+
+		// waiting for the result to be displayed on standard output
+		// before the next prompt
 		time.Sleep(15 * time.Millisecond)
 
 	}
 
-	// send the userInputVariableName ans userInputVariableValue through a channel to
-	// HandleUserCommand() and run HandleUserCommand() in a goroutine using a inifinite for loop
-	// and read the data from this channel and handle fuctionality of the given commands in HandleUserCommand()
-
 }
 
+// Prompt alerts the user that the application is ready for the user input, so provide some user inputs now.
 func Prompt() {
 	fmt.Print("> ")
 }
 
-func HelpingInfoForUserInputOne() {
-	fmt.Print("Invalid user input; ")
-	fmt.Println(`user input should consist of a "command" and a "variable name" and a single "value" for the variable.`)
-}
-
-func HelpingInfoForUserInputTwo() {
-	fmt.Print("Invalid user input; ")
-	fmt.Println(`user input should consist of at least a "command" and a "variable name"`)
-}
-
+// HandleUserCommand process the given user inputs and produce the result for those user inputs.
 func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVariableAndValueChan chan []string, endProcessChan chan bool) {
 	defer wg.Done()
 	transactionVariable := ""
@@ -130,7 +111,8 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 		commandVariableAndValue := <-commandVariableAndValueChan
 		switch x {
 		case "get":
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n")
+			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
+			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n")   // for linux newline return
 			valueSlice, ok := store[commandVariableAndValue[0]]
 			if ok {
 				if valueSlice[0] == -99 {
@@ -147,13 +129,15 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 			}
 
 		case "set":
-			commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\r\n")
+			commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\r\n") // for windows carriage return
+			commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\n")   // for linux newline return
 			userInputVariableValueInt, err := strconv.Atoi(commandVariableAndValue[1])
 			if err != nil {
 				fmt.Println("Couldn't convert user input string to int", err)
 			}
 
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n")
+			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
+			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n")   // for linux newline return
 			transactionVariable = commandVariableAndValue[0]
 			_, ok := store[commandVariableAndValue[0]]
 			if ok {
@@ -165,7 +149,8 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 			store[commandVariableAndValue[0]] = userInputVariableValueSlice
 
 		case "unset":
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n")
+			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
+			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n")   // for linux newline return
 			_, ok := store[commandVariableAndValue[0]]
 			if ok {
 				store[commandVariableAndValue[0]] = []int{-99}
@@ -175,26 +160,19 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 		case "begin":
 			transactionStarted = true
 			transactionCompleted = false
-			// fmt.Println(transactionVariable)
 
 		case "rollback":
 			rollbackNum++
 			if !transactionCompleted && transactionStarted {
 				// valid transaction; do the transaction
-				fmt.Println("before changing", store)
 				lastValueIndex := len(store[transactionVariable]) - 1
 				store[transactionVariable] = store[transactionVariable][:lastValueIndex]
-				fmt.Println("after changing", store)
 				// when after rollback there is no value show "null"
 				if len(store[transactionVariable]) == 0 {
 					store[transactionVariable] = []int{-99}
 				}
 				break
-				// // invalid transaction; show no transaction and print 'END'
-				// fmt.Println("NO TRANSACTION")
-				// endProcessChan <- true
-				// close(endProcessChan)
-				// }
+
 			}
 			// Since no transaction has started so rollback is not possible
 			// invalid transaction; show no transaction and print 'END'
@@ -204,18 +182,9 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 
 		case "commit":
 			lastValue := store[transactionVariable][len(store[transactionVariable])-1]
-			// fmt.Println(lastValue)
 			store[transactionVariable] = []int{lastValue}
 			transactionCompleted = true
 			transactionStarted = false
-
-			// default:
-			// 	if !transactionCompleted && transactionStarted {
-			// 		if len(store[commandVariableAndValue[0]]) == 0 {
-			// 			endProcessChan <- true
-			// 			close(endProcessChan)
-			// 		}
-			// 	}
 
 		}
 
@@ -223,6 +192,7 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 
 }
 
+// helperEnd is a helper function to end the process for certain "NULL" result
 func helperEnd(transactionCompleted, transactionStarted bool, commandVariableAndValue []string, endProcessChan chan bool) {
 	if !transactionCompleted && transactionStarted {
 		if len(store[commandVariableAndValue[0]]) == 0 {
