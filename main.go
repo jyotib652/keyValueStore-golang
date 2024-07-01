@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,8 +14,10 @@ import (
 var reader *bufio.Reader
 var store = make(map[string][]int)
 var gotUserInput = false
+var OSEnvironment = ""
 
 func main() {
+	DetectOS()
 	wg := sync.WaitGroup{}
 
 	commandChan := make(chan string)
@@ -28,6 +31,17 @@ func main() {
 
 	wg.Wait()
 
+}
+
+// DetectOS detects the OS installed on the System. If the environment is "linux" then this application
+// will run on both "macos" and "linux" OS but if the environment is "windows" then also it will run
+// on windows OS.
+func DetectOS() {
+	if runtime.GOOS == "windows" {
+		OSEnvironment = "windows"
+	} else {
+		OSEnvironment = "linux"
+	}
 }
 
 // FetchUserInput receives user input from standard input and then send back those inputs to HandleUserCommand for processing.
@@ -64,8 +78,11 @@ func FetchUserInput(wg *sync.WaitGroup, commandChan chan string, commandVariable
 		userInputSlice := strings.Split(userInput, " ")
 
 		userInputCommand := strings.ToLower(userInputSlice[0])
-		userInputCommand = strings.TrimSuffix(userInputCommand, "\r\n") // for windows carriage return
-		userInputCommand = strings.TrimSuffix(userInputCommand, "\n")   // for linux newline return
+		if runtime.GOOS == "windows" {
+			userInputCommand = strings.TrimSuffix(userInputCommand, "\r\n") // for windows carriage return
+		} else {
+			userInputCommand = strings.TrimSuffix(userInputCommand, "\n") // for linux newline return
+		}
 		useInputSliceLength := len(userInputSlice)
 		userInputVariableName := ""
 		userInputvariableVal := ""
@@ -111,8 +128,11 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 		commandVariableAndValue := <-commandVariableAndValueChan
 		switch x {
 		case "get":
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n")   // for linux newline return
+			if runtime.GOOS == "windows" {
+				commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
+			} else {
+				commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n") // for linux newline return
+			}
 			valueSlice, ok := store[commandVariableAndValue[0]]
 			if ok {
 				if valueSlice[0] == -99 {
@@ -129,15 +149,23 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 			}
 
 		case "set":
-			commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\r\n") // for windows carriage return
-			commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\n")   // for linux newline return
+			if runtime.GOOS == "windows" {
+				commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\r\n") // for windows carriage return
+			} else {
+				commandVariableAndValue[1] = strings.TrimSuffix(commandVariableAndValue[1], "\n") // for linux newline return
+			}
+
 			userInputVariableValueInt, err := strconv.Atoi(commandVariableAndValue[1])
 			if err != nil {
 				fmt.Println("Couldn't convert user input string to int", err)
 			}
 
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n")   // for linux newline return
+			if runtime.GOOS == "windows" {
+				commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
+			} else {
+				commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n") // for linux newline return
+			}
+
 			transactionVariable = commandVariableAndValue[0]
 			_, ok := store[commandVariableAndValue[0]]
 			if ok {
@@ -149,8 +177,12 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 			store[commandVariableAndValue[0]] = userInputVariableValueSlice
 
 		case "unset":
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
-			commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n")   // for linux newline return
+			if runtime.GOOS == "windows" {
+				commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\r\n") // for windows carriage return
+			} else {
+				commandVariableAndValue[0] = strings.TrimSuffix(commandVariableAndValue[0], "\n") // for linux newline return
+			}
+
 			_, ok := store[commandVariableAndValue[0]]
 			if ok {
 				store[commandVariableAndValue[0]] = []int{-99}
