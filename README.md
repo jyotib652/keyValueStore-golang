@@ -1,7 +1,7 @@
 # keyValueStore-golang
 
 ## Implement a Key-Value Store
-In this problem, you'll implement an in-memory key/value store service similar to Redis. 
+Here is the implementation of an in-memory key/value store service similar to Redis in Golang. 
 For simplicity's sake, instead of dealing with IO you only need to implement this 
 without persistance / values are lost if the service is terminated.
 
