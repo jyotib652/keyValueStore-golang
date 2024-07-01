@@ -192,7 +192,8 @@ func HandleUserCommand(wg *sync.WaitGroup, commandChan chan string, commandVaria
 
 }
 
-// helperEnd is a helper function to end the process for certain "NULL" result
+// helperEnd is a helper function to end the process for certain "NULL" result. And this function uses a channel to end the process.
+// Apart from this function, there is another function that also ends the process.
 func helperEnd(transactionCompleted, transactionStarted bool, commandVariableAndValue []string, endProcessChan chan bool) {
 	if !transactionCompleted && transactionStarted {
 		if len(store[commandVariableAndValue[0]]) == 0 {
